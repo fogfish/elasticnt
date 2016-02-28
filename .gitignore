@@ -1,0 +1,13 @@
+*.*~
+*.log
+*.aux
+*.beam
+*.dump
+*.tag.gz
+*.tgz
+tests/
+ebin/
+rebar3
+rebar.lock
+_build/
+*.sublime-*

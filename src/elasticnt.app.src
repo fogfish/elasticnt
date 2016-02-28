@@ -1,0 +1,13 @@
+{application, elasticnt,
+   [
+      {description, "n-triple intake to elastic search"},
+      {vsn,         "0.0.0"},
+      {modules,     []},
+      {registered,  []},
+      {applications,[
+         kernel
+        ,stdlib
+      ]},
+      {env, []}
+   ]
+}.  
