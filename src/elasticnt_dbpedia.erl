@@ -13,6 +13,7 @@
   ,{foaf,         <<"http://xmlns.com/foaf/0.1/">>}
   ,{things,       <<"http://dbpedia.org/resource/">>}
   ,{dbpedia,      <<"http://dbpedia.org/ontology/">>}
+  ,{wikimedia,    <<"http://commons.wikimedia.org/wiki/">>}
 ]).
 
 
