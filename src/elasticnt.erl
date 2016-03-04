@@ -49,8 +49,8 @@ schema(Sock, Schema, Opts) ->
          mappings => #{
             '_default_' => #{
                properties => #{
-                  s => #{type => string, index => not_analyzed},
-                  o => #{type => string} 
+                  o => #{type => string},
+                  k => #{type => string}
                }
             }
          }
@@ -61,22 +61,22 @@ schema(Sock, Schema, Opts) ->
 %%
 %% declare predicate to existed schema
 %%  Type(s)
-%%    string - 
-%%    number -
-%%    double -
+%%    string  - 
+%%    integer -
+%%    double  -
 declare(Sock, Schema, Attr, Type) ->
    esio:put(Sock, uri:segments([Schema, <<"_mappings">>, Attr], ?URN),
       #{
          properties => #{
-            s => #{type => string, index => not_analyzed},
-            o => #{type => type(Type)} 
+            o => #{type => type(Type)},
+            k => #{type => string}
          }
       }
    ).
 
 type(string) ->
    string;
-type(number) ->
+type(integer) ->
    long;
 type(double) ->
    double.
@@ -88,8 +88,8 @@ in(Sock, Stream) ->
    stream:foreach(
       fun(#{s:= Key, p := Type, o := Val}) ->
          Uid = base64:encode( uid:encode(uid:g()) ),
-         Urn = uri:segments([Type, Uid], ?URN),
-         esio:put(Sock, Urn, #{s => Key,  o => jsval(Val)}, infinity)
+         Urn = uri:segments([Type, Key], ?URN),
+         esio:put(Sock, Urn, #{k => Uid, o => jsval(Val)}, infinity)
       end,
       Stream
    ).
