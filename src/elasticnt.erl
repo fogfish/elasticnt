@@ -20,7 +20,6 @@
 %% elastic search i/o
 -export([
    schema/3,
-   declare/4,
    in/2
 ]).
 %% data processing
@@ -48,56 +47,63 @@ schema(Sock, Schema, Opts) ->
             number_of_replicas => opts:val(n, 1, Opts)
          },
          mappings => #{
-            '_default_' => #{
-               properties => #{
-                  o => #{type => string},
-                  k => #{type => string}
-               }
-            }
+            '_default_' => #{properties => properties(string)},
+            string      => #{properties => properties(string)},
+            long        => #{properties => properties(long)},
+            double      => #{properties => properties(double)},
+            datetime    => #{properties => properties(string)}
          }
       }
    ).
 
-
-%%
-%% declare predicate to existed schema
-%%  Type(s)
-%%    string  - 
-%%    integer -
-%%    double  -
-declare(Sock, Schema, Attr, Type) ->
-   esio:put(Sock, uri:segments([Schema, <<"_mappings">>, Attr], ?URN),
-      #{
-         properties => #{
-            o => #{type => type(Type)},
-            k => #{type => string}
-         }
-      }
-   ).
-
-type(string) ->
-   string;
-type(integer) ->
-   long;
-type(double) ->
-   double.
-
+properties(Type) ->
+   #{
+      s => #{type => string, index => not_analyzed},
+      p => #{type => string, index => not_analyzed},
+      o => #{type => Type},
+      k => #{type => string, index => not_analyzed}
+   }.
 
 %%
 %% intake stream of atomic statements 
 in(Sock, Stream) ->
    stream:foreach(
-      fun(#{s:= Key, p := Type, o := Val}) ->
-         Uid = base64:encode( uid:encode(uid:g()) ),
-         Urn = uri:segments([Type, Key], ?URN),
-         esio:put(Sock, Urn, #{k => Uid, o => jsval(Val)}, infinity)
+      fun(#{s:= S, p := P, o := O} = Fact) ->
+         Uid  = base64:encode( uid:encode(uid:g()) ),
+         JsO  = jsonify(O),
+         Key  = key(S, P, JsO),
+         Type = typeof(Fact),
+         Urn  = uri:segments([Type, Key], ?URN),
+         esio:put(Sock, Urn, #{s => S, p => P, o => JsO, k => Uid}, infinity)
       end,
       Stream
    ).
 
-jsval({_, _, _} = X) ->
+%% unique fact identity (content address)
+key(S, P, O) ->
+   bits:btoh(
+      crypto:hash(md5, [scalar:s(S), scalar:s(P), scalar:s(O)])
+   ).
+
+%% fact type
+typeof(#{lang := Lang}) ->
+   Lang;
+typeof(#{o := O})
+ when is_binary(O) ->
+   string;
+typeof(#{o := O})
+ when is_integer(O) ->
+   long;
+typeof(#{o := O})
+ when is_float(O) ->
+   double;
+typeof(#{o := {_, _, _}}) ->
+   datetime.
+
+%% jsonify fact value
+jsonify({_, _, _} = X) ->
    scalar:s(tempus:encode(X));
-jsval(X) ->
+jsonify(X) ->
    X.
 
 
@@ -162,8 +168,4 @@ dbpedia({s, _, _} = Stream) ->
    elasticnt_dbpedia:nt(Stream);
 dbpedia(File) ->
    dbpedia(stdio:file(File)).
-
-
-
-
 
