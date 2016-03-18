@@ -26,6 +26,7 @@
 %% data processing
 -export([
    nt/2,
+   freebase/1,
    dbpedia/1
 ]).
 
@@ -106,21 +107,49 @@ jsval(X) ->
 
 nt(Prefixes, Stream) ->
    stream:map(
-      fun
-      ({{url, S}, {url, P}, {url, O}}) ->
-         #{s => uri:urn(S, Prefixes), p => uri:urn(P, Prefixes), o => uri:urn(O, Prefixes)};
-
-      ({{url, S}, {url, P}, {url, O}, _}) ->
-         #{s => uri:urn(S, Prefixes), p => uri:urn(P, Prefixes), o => uri:urn(O, Prefixes)};
-
-      ({{url, S}, {url, P}, O}) ->
-         #{s => uri:urn(S, Prefixes), p => uri:urn(P, Prefixes), o => O};
-
-      ({{url, S}, {url, P}, O, _}) ->
-         #{s => uri:urn(S, Prefixes), p => uri:urn(P, Prefixes), o => O}
-      end,
+      fun(X) -> fact(Prefixes, X) end,
       nt:stream(Stream)
    ).
+
+fact(Prefixes, {{url, S}, {url, P}, {url, O}}) ->
+   #{
+      s => uri:urn(S, Prefixes), 
+      p => uri:urn(P, Prefixes), 
+      o => uri:urn(O, Prefixes)
+   };
+fact(Prefixes, {{url, S}, {url, P}, {url, O}, Lang})
+ when is_binary(Lang) ->
+   #{
+      s => uri:urn(S, Prefixes), 
+      p => uri:urn(P, Prefixes), 
+      o => uri:urn(O, Prefixes), 
+      lang => Lang
+   };
+fact(Prefixes, {{url, S}, {url, P}, O}) ->
+   #{
+      s => uri:urn(S, Prefixes), 
+      p => uri:urn(P, Prefixes), 
+      o => O
+   };
+fact(Prefixes, {{url, S}, {url, P}, O, Lang})
+ when is_binary(Lang) ->
+   #{
+      s => uri:urn(S, Prefixes), 
+      p => uri:urn(P, Prefixes), 
+      o => O,
+      lang => Lang
+   }.
+
+%%
+%% takes stream of N-triples and converts them to 
+%% knowledge statements, using freebase ontology to
+%% build identifiers.
+-spec freebase(string() | datum:stream()) -> datum:stream().
+
+freebase({s, _, _} = Stream) ->
+   elasticnt_freebase:nt(Stream);
+freebase(File) ->
+   freebase(gz:stream(stdio:file(File))).
 
 
 %%
