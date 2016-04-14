@@ -16,10 +16,14 @@
 %% @doc
 %%   N-triple intake to elastic search
 -module(elasticnt).
+-include("elasticnt.hrl").
 
 %% elastic search i/o
 -export([
+   schema/2,
    schema/3,
+   put/2,
+   put/3,
    in/2
 ]).
 %% data processing
@@ -29,82 +33,45 @@
    dbpedia/1
 ]).
 
-%% 
-%%
--define(URN, {urn, <<"es">>, <<>>}).
-
 
 %%
-%% defines schema for attributes
+%% create new knowledge statement schema
 %%  Options
 %%    n - number of replica (default 1)
 %%    q - number of shards (default 8)
-schema(Sock, Schema, Opts) ->
-   esio:put(Sock, uri:segments([Schema], ?URN),
-      #{
-         settings => #{
-            number_of_shards   => opts:val(q, 8, Opts), 
-            number_of_replicas => opts:val(n, 1, Opts)
-         },
-         mappings => #{
-            '_default_' => #{properties => properties(string)},
-            string      => #{properties => properties(string)},
-            long        => #{properties => properties(long)},
-            double      => #{properties => properties(double)},
-            datetime    => #{properties => properties(string)}
-         }
-      }
-   ).
+-spec schema(pid(), atom(), [{_, _}]) -> ok.
 
-properties(Type) ->
-   #{
-      s => #{type => string, index => not_analyzed},
-      p => #{type => string, index => not_analyzed},
-      o => #{type => Type},
-      k => #{type => string, index => not_analyzed}
-   }.
+schema(Sock, Opts) ->
+   elasticnt:schema(Sock, "", Opts).
+
+schema(Sock, Schema, Opts) ->
+   esio:put(Sock, uri:segments([Schema], ?URN), elasticnt_schema:new(Opts)).
+
+
+%%
+%% put the statement into cluster
+-spec put(pid(), #{s => _, p => _, o => _}) -> ok.
+-spec put(pid(), #{s => _, p => _, o => _}, timeout()) -> ok.
+
+put(Sock, Fact) ->
+   elasticnt:put(Sock, Fact, 5000).
+
+put(Sock, Fact, Timeout) ->
+   {Urn, Stmt} = elasticnt_schema:encode(Fact),
+   esio:put(Sock, Urn, Stmt, Timeout).
 
 %%
 %% intake stream of atomic statements 
+-spec in(pid(), datum:stream()) -> ok.
+
 in(Sock, Stream) ->
    stream:foreach(
-      fun(#{s:= S, p := P, o := O} = Fact) ->
-         Uid  = base64:encode( uid:encode(uid:g()) ),
-         JsO  = jsonify(O),
-         Key  = key(S, P, JsO),
-         Type = typeof(Fact),
-         Urn  = uri:segments([Type, Key], ?URN),
-         esio:put(Sock, Urn, #{s => S, p => P, o => JsO, k => Uid}, infinity)
+      fun(Fact) ->
+         elasticnt:put(Sock, Fact, infinity)
       end,
       Stream
    ).
 
-%% unique fact identity (content address)
-key(S, P, O) ->
-   bits:btoh(
-      crypto:hash(md5, [scalar:s(S), scalar:s(P), scalar:s(O)])
-   ).
-
-%% fact type
-typeof(#{lang := Lang}) ->
-   Lang;
-typeof(#{o := O})
- when is_binary(O) ->
-   string;
-typeof(#{o := O})
- when is_integer(O) ->
-   long;
-typeof(#{o := O})
- when is_float(O) ->
-   double;
-typeof(#{o := {_, _, _}}) ->
-   datetime.
-
-%% jsonify fact value
-jsonify({_, _, _} = X) ->
-   scalar:s(tempus:encode(X));
-jsonify(X) ->
-   X.
 
 
 %%
