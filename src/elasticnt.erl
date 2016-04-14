@@ -24,15 +24,10 @@
    schema/3,
    put/2,
    put/3,
-   in/2
+   in/2,
+   nt/1,
+   nt/2
 ]).
-%% data processing
--export([
-   nt/2,
-   freebase/1,
-   dbpedia/1
-]).
-
 
 %%
 %% create new knowledge statement schema
@@ -72,18 +67,29 @@ in(Sock, Stream) ->
       Stream
    ).
 
-
-
 %%
-%% produces stream of triples, read from n-triple file
--spec nt(atom() | list(), datum:stream()) -> datum:stream().
+%% takes stream of N-triples and converts them to 
+%% knowledge statements, using built-in ontologies.
+-spec nt(datum:stream()) -> datum:stream().
+-spec nt(list(), datum:stream()) -> datum:stream().
 
-nt(Prefixes, Stream) ->
+nt(Stream) ->
+   nt(?KNS, Stream).
+
+nt(Prefixes, {s, _, _} = Stream) ->
    stream:map(
       fun(X) -> fact(Prefixes, X) end,
       nt:stream(Stream)
-   ).
+   );
+nt(Prefixes, File) ->
+   case filename:extension(File) of
+      ".nt" -> nt(Prefixes, stdio:file(File));
+      ".gz" -> nt(Prefixes, gz:stream(stdio:file(File)))
+   end.
 
+
+%%
+%%
 fact(Prefixes, {{url, S}, {url, P}, {url, O}}) ->
    #{
       s => uri:urn(S, Prefixes), 
@@ -112,27 +118,3 @@ fact(Prefixes, {{url, S}, {url, P}, O, Lang})
       o => O,
       lang => Lang
    }.
-
-%%
-%% takes stream of N-triples and converts them to 
-%% knowledge statements, using freebase ontology to
-%% build identifiers.
--spec freebase(string() | datum:stream()) -> datum:stream().
-
-freebase({s, _, _} = Stream) ->
-   elasticnt_freebase:nt(Stream);
-freebase(File) ->
-   freebase(gz:stream(stdio:file(File))).
-
-
-%%
-%% takes stream of N-triples and converts them to 
-%% knowledge statements, using dbpedia ontology to
-%% build identifiers.
--spec dbpedia(string() | datum:stream()) -> datum:stream().
-
-dbpedia({s, _, _} = Stream) ->
-   elasticnt_dbpedia:nt(Stream);
-dbpedia(File) ->
-   dbpedia(stdio:file(File)).
-

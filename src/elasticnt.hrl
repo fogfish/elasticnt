@@ -17,3 +17,28 @@
 %% 
 %% default urn schema for statement identity (used by elastic I/O)
 -define(URN, {urn, <<"es">>, <<>>}).
+
+
+%%
+%% built-in ontologies and they knowledge name-spaces
+-define(KNS, [
+   %%
+   %% dbpedia
+   {rdf,          <<"http://www.w3.org/1999/02/22-rdf-syntax-ns#">>}
+  ,{rdfs,         <<"http://www.w3.org/2000/01/rdf-schema#">>}
+  ,{dc,           <<"http://purl.org/dc/elements/1.1/">>}
+  ,{foaf,         <<"http://xmlns.com/foaf/0.1/">>}
+  ,{things,       <<"http://dbpedia.org/resource/">>}
+  ,{dbpedia,      <<"http://dbpedia.org/ontology/">>}
+  ,{wikimedia,    <<"http://commons.wikimedia.org/wiki/">>}
+
+   %%
+   %% free-base
+  ,{owl,          <<"http://www.w3.org/2002/07/owl#">>}
+  ,{fbase,        <<"http://rdf.freebase.com/ns/">>}
+  ,{fbkey,        <<"http://rdf.freebase.com/key/">>}
+
+   %%
+   %% geo rss
+  ,{georss,       <<"http://www.georss.org/georss/">>}
+]).
