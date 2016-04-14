@@ -73,9 +73,6 @@ encode(#{s := S, p := P, o := O} = Fact) ->
 
 %%
 %% jsonify fact value
-jsonify({geo, Lat, Lng}) ->
-   hash:geo(Lat, Lng);
-
 jsonify({_, _, _} = X) ->
    scalar:s(tempus:encode(X));
 
@@ -94,6 +91,9 @@ unique_id(S, P, O) ->
 typeof(#{lang := Lang}) ->
    Lang;
 
+typeof(#{type := Type}) ->
+   Type;
+
 typeof(#{o := O})
  when is_binary(O) ->
    string;
@@ -105,9 +105,6 @@ typeof(#{o := O})
 typeof(#{o := O})
  when is_float(O) ->
    double;
-
-typeof(#{o := {geo, _, _}}) ->
-   geohash;
 
 typeof(#{o := {_, _, _}}) ->
    datetime.
