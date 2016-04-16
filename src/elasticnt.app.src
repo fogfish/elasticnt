@@ -1,12 +1,14 @@
 {application, elasticnt,
    [
       {description, "n-triple intake to elastic search"},
-      {vsn,         "0.4.1"},
+      {vsn,         "0.5.0"},
       {modules,     []},
       {registered,  []},
       {applications,[
          kernel
         ,stdlib
+        ,uid
+        ,esio
       ]},
       {env, []}
    ]

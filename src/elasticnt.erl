@@ -18,7 +18,7 @@
 -module(elasticnt).
 -include("elasticnt.hrl").
 
-%% elastic search i/o
+-export([start/0]).
 -export([
    schema/2,
    schema/3,
@@ -28,6 +28,11 @@
    nt/1,
    nt/2
 ]).
+
+%%
+%% RnD start application
+start() ->
+   applib:boot(?MODULE, []).
 
 %%
 %% create new knowledge statement schema
