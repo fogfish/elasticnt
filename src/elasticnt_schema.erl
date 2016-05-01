@@ -39,7 +39,7 @@ new(Opts) ->
          string      => #{properties => properties(string)},
          long        => #{properties => properties(long)},
          double      => #{properties => properties(double)},
-         datetime    => #{properties => properties(string)},
+         datetime    => #{properties => properties(datetime)},
          geohash     => #{properties => properties(geohash)}
       }
    }.
@@ -52,6 +52,14 @@ properties(geohash) ->
       o => #{type => geo_point, index => not_analyzed, geohash_prefix => true},
       k => #{type => string, index => not_analyzed}
    };
+properties(datetime) ->
+   #{
+      s => #{type => string, index => not_analyzed},
+      p => #{type => string, index => not_analyzed},
+      o => #{type => date, format => basic_date_time_no_millis, index => not_analyzed},
+      k => #{type => string, index => not_analyzed}
+   };
+
 properties(Type) ->
    #{
       s => #{type => string, index => not_analyzed},
@@ -108,4 +116,35 @@ typeof(#{o := O})
 
 typeof(#{o := {_, _, _}}) ->
    datetime.
+
+
+
+%%
+%% decode literal data type 
+decode_l(<<"http://www.w3.org/2001/XMLSchema#date">>, X) ->
+   tempus:iso8601(X);
+
+decode_l(<<"http://www.w3.org/2001/XMLSchema#dateTime">>, X) ->
+   tempus:iso8601(X); 
+
+decode_l(<<"http://www.w3.org/2001/XMLSchema#gYearMonth">>, X) ->
+   tempus:iso8601(X); 
+
+decode_l(<<"http://www.w3.org/2001/XMLSchema#gYear">>, X) ->
+   tempus:iso8601(X);    
+
+decode_l(<<"http://www.w3.org/2001/XMLSchema#gMonth">>, X) ->
+   scalar:i(X);    
+
+decode_l(<<"http://www.w3.org/2001/XMLSchema#gDay">>, X) ->
+   scalar:i(X);
+
+decode_l(<<"http://www.w3.org/2001/XMLSchema#integer">>, X) ->
+   scalar:i(X);
+
+decode_l(<<"http://www.w3.org/2001/XMLSchema#string">>, X) ->
+   X;
+
+decode_l(_, X) ->
+   scalar:decode(X).
 
