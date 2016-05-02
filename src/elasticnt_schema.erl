@@ -20,6 +20,7 @@
 
 -export([
    new/1
+  ,namespace/1
   ,encode/1
 ]).
 
@@ -67,6 +68,21 @@ properties(Type) ->
       o => #{type => Type},
       k => #{type => string, index => not_analyzed}
    }.
+
+
+%%
+%% provides built-in namespace
+namespace(_) ->
+   stream:list(
+      stream:map(fun nt2json/1,
+         nt:stream(
+            stdio:file( filename:join([code:priv_dir(elasticnt), "namespace.nt"]) )
+         )
+      )
+   ).   
+
+nt2json({{urn, S}, {urn, P}, {uri, O}}) ->
+   encode(#{s => S, p => P, o => O}).   
 
 
 %%

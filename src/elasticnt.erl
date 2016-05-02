@@ -45,7 +45,13 @@ schema(Sock, Opts) ->
    elasticnt:schema(Sock, "", Opts).
 
 schema(Sock, Schema, Opts) ->
-   esio:put(Sock, uri:segments([Schema], ?URN), elasticnt_schema:new(Opts)).
+   esio:put(Sock, uri:segments([Schema], ?URN), elasticnt_schema:new(Opts)),
+   lists:foreach(
+      fun({Key, Val}) ->
+         ok = esio:put(Sock, Key, Val)
+      end,
+      elasticnt_schema:namespace(Opts)
+   ).
 
 
 %%
