@@ -23,19 +23,38 @@
 
 
 start(_Type, _Args) -> 
-   ns_encode(),
-   ns_decode(),
+   ns_build(),
    {ok, self()}.
 
 stop(_State) ->
    ok.
 
 
+%%
+%% compile ns
+ns_build() ->
+   Kns = ns_load(), 
+   ns_build_encode(Kns),
+   ns_build_decode(Kns).
+
+%%
+%%
+ns_load() ->
+   stream:list(
+      stream:map(fun nt2kns/1,
+         nt:stream(
+            stdio:file( filename:join([code:priv_dir(elasticnt), "namespace.nt"]) )
+         )
+      )
+   ) ++ [{undefined, <<>>}].
+
+nt2kns({{urn, <<"urn:xmlns:", Ns/binary>>}, {urn,<<"urn:rdfs:domain">>}, {uri, Uri}}) ->
+   {Ns, Uri}.
 
 %%
 %% compile prefix encoder
-ns_encode() ->
-   hornlog:c(elasticnt_ns_encode, [ns_encode(X) || X <- ?KNS]).
+ns_build_encode(Kns) ->
+   hornlog:c(elasticnt_ns_encode, [ns_encode(X) || X <- Kns]).
 
 ns_encode({Ns, Uri}) ->
    hornlog:rule(hornlog:like(fun elasticnt_app:ns_encode/2, [Ns]), scalar:s(Uri)).
@@ -43,19 +62,19 @@ ns_encode({Ns, Uri}) ->
 ns_encode(undefined, _X, Suffix) ->
    Suffix;
 ns_encode(Ns, _X, Suffix) ->
-   <<"urn:", (scalar:s(Ns))/binary, $:, Suffix/binary>>.
+   <<"urn:", Ns/binary, $:, Suffix/binary>>.
 
 
 %%
 %% compile prefix decoder
-ns_decode() ->
-   hornlog:c(elasticnt_ns_decode, [ns_decode(X) || X <- ?KNS]).
+ns_build_decode(Kns) ->
+   hornlog:c(elasticnt_ns_decode, [ns_decode(X) || X <- Kns]).
 
 ns_decode({undefined, <<>>}) ->
    hornlog:rule(hornlog:like(fun elasticnt_app:ns_decode/2, [undefined]), <<>>);
 
 ns_decode({Ns, Uri}) ->
-   hornlog:rule(hornlog:like(fun elasticnt_app:ns_decode/2, [scalar:s(Uri)]), <<"urn:", (scalar:s(Ns))/binary, $:>>).
+   hornlog:rule(hornlog:like(fun elasticnt_app:ns_decode/2, [scalar:s(Uri)]), <<"urn:", Ns/binary, $:>>).
 
 ns_decode(undefined, _X, Suffix) ->
    Suffix;

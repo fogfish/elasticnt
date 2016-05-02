@@ -79,7 +79,7 @@ in(Sock, Stream) ->
 -spec nt(list(), datum:stream()) -> datum:stream().
 
 nt(Stream) ->
-   nt(?KNS, Stream).
+   nt([], Stream).
 
 nt(Prefixes, {s, _, _} = Stream) ->
    stream:map(
