@@ -25,8 +25,7 @@
    put/2,
    put/3,
    in/2,
-   nt/1,
-   nt/2
+   nt/1
 ]).
 
 %%
@@ -45,7 +44,9 @@ schema(Sock, Opts) ->
    elasticnt:schema(Sock, "", Opts).
 
 schema(Sock, Schema, Opts) ->
+   % create bucket
    esio:put(Sock, uri:segments([Schema], ?URN), elasticnt_schema:new(Opts)),
+   % define namespace prefixes
    lists:foreach(
       fun({Key, Val}) ->
          ok = esio:put(Sock, Key, Val)
@@ -82,50 +83,22 @@ in(Sock, Stream) ->
 %% takes stream of N-triples and converts them to 
 %% knowledge statements, using built-in ontologies.
 -spec nt(datum:stream()) -> datum:stream().
--spec nt(list(), datum:stream()) -> datum:stream().
 
-nt(Stream) ->
-   nt([], Stream).
-
-nt(Prefixes, {s, _, _} = Stream) ->
-   stream:map(
-      fun(X) -> fact(Prefixes, X) end,
-      nt:stream(Stream)
-   );
-nt(Prefixes, File) ->
+nt({s, _, _} = Stream) ->
+   stream:map(fun nt2fact/1, nt:stream(Stream));
+nt(File) ->
    case filename:extension(File) of
-      ".nt" -> nt(Prefixes, stdio:file(File));
-      ".gz" -> nt(Prefixes, gz:stream(stdio:file(File)))
+      ".nt" -> nt(stdio:file(File));
+      ".gz" -> nt(gz:stream(stdio:file(File)))
    end.
 
+%%
+%% map nt-triple to fact statement
+nt2fact({{uri, S}, {uri, P}, {uri, O}}) ->
+   #{s => S, p => P, o => O};
 
-%%
-%%
-fact(Prefixes, {{url, S}, {url, P}, {url, O}}) ->
-   #{
-      s => uri:urn(S, Prefixes), 
-      p => uri:urn(P, Prefixes), 
-      o => uri:urn(O, Prefixes)
-   };
-fact(Prefixes, {{url, S}, {url, P}, {url, O}, Lang})
- when is_binary(Lang) ->
-   #{
-      s => uri:urn(S, Prefixes), 
-      p => uri:urn(P, Prefixes), 
-      o => uri:urn(O, Prefixes), 
-      lang => Lang
-   };
-fact(Prefixes, {{url, S}, {url, P}, O}) ->
-   #{
-      s => uri:urn(S, Prefixes), 
-      p => uri:urn(P, Prefixes), 
-      o => O
-   };
-fact(Prefixes, {{url, S}, {url, P}, O, Lang})
- when is_binary(Lang) ->
-   #{
-      s => uri:urn(S, Prefixes), 
-      p => uri:urn(P, Prefixes), 
-      o => O,
-      lang => Lang
-   }.
+nt2fact({{uri, S}, {uri, P}, {<<_:16>> = Lang, O}}) ->
+   #{s => S, p => P, o => O, lang => Lang};
+
+nt2fact({{uri, S}, {uri, P}, {Type, O}}) ->
+   #{s => S, p => P, o => O, type => Type}.

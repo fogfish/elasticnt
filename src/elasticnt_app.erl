@@ -48,7 +48,7 @@ ns_load() ->
       )
    ) ++ [{undefined, <<>>}].
 
-nt2kns({{urn, <<"urn:xmlns:", Ns/binary>>}, {urn,<<"urn:rdfs:domain">>}, {uri, Uri}}) ->
+nt2kns({{uri, <<"urn:xmlns:", Ns/binary>>}, {uri,<<"urn:rdfs:domain">>}, {uri, Uri}}) ->
    {Ns, Uri}.
 
 %%

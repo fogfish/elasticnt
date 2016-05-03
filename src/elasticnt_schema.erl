@@ -37,6 +37,7 @@ new(Opts) ->
       },
       mappings => #{
          '_default_' => #{properties => properties(string)},
+         schema      => #{properties => properties(string)},
          string      => #{properties => properties(string)},
          long        => #{properties => properties(long)},
          double      => #{properties => properties(double)},
@@ -81,15 +82,102 @@ namespace(_) ->
       )
    ).   
 
-nt2json({{urn, S}, {urn, P}, {uri, O}}) ->
-   encode(#{s => S, p => P, o => O}).   
+nt2json({{uri, S}, {uri, P}, {uri, O}}) ->
+   jsonify(#{s => S, p => P, o => O, type => schema}).   
 
 
 %%
 %% encode fact to JSON format
-encode(#{s := S, p := P, o := O} = Fact) ->
+encode(Fact) ->
+   jsonify( typed(Fact) ).
+
+%%
+%% map nt-triple to typed structure
+typed(#{s := S, p := P, lang := _} = Fact) ->
+   Fact#{
+      s => elasticnt_ns_encode(S),
+      p => elasticnt_ns_encode(P)
+   };
+
+typed(#{s := S, p := P, o := O, type := <<"http://www.w3.org/2001/XMLSchema#date">>} = Fact) ->
+   Fact#{
+      s => elasticnt_ns_encode(S),
+      p => elasticnt_ns_encode(P),
+      o => tempus:iso8601(O),
+      type => datetime
+   };
+
+typed(#{s := S, p := P, o := O, type := <<"http://www.w3.org/2001/XMLSchema#dateTime">>} = Fact) ->
+   Fact#{
+      s => elasticnt_ns_encode(S),
+      p => elasticnt_ns_encode(P),
+      o => tempus:iso8601(O),
+      type => datetime
+   };
+
+typed(#{s := S, p := P, o := O, type := <<"http://www.w3.org/2001/XMLSchema#gYearMonth">>} = Fact) ->
+   Fact#{
+      s => elasticnt_ns_encode(S),
+      p => elasticnt_ns_encode(P),
+      o => tempus:iso8601(O),
+      type => datetime
+   };
+
+typed(#{s := S, p := P, o := O, type := <<"http://www.w3.org/2001/XMLSchema#gYear">>} = Fact) ->
+   Fact#{
+      s => elasticnt_ns_encode(S),
+      p => elasticnt_ns_encode(P),
+      o => tempus:iso8601(O),
+      type => datetime
+   };
+
+typed(#{s := S, p := P, o := O, type := <<"http://www.w3.org/2001/XMLSchema#gMonth">>} = Fact) ->
+   Fact#{
+      s => elasticnt_ns_encode(S),
+      p => elasticnt_ns_encode(P),
+      o => scalar:i(O),
+      type => long
+   };
+
+typed(#{s := S, p := P, o := O, type := <<"http://www.w3.org/2001/XMLSchema#gDay">>} = Fact) ->
+   Fact#{
+      s => elasticnt_ns_encode(S),
+      p => elasticnt_ns_encode(P),
+      o => scalar:i(O),
+      type => long
+   };
+
+typed(#{s := S, p := P, o := O, type := <<"http://www.w3.org/2001/XMLSchema#integer">>} = Fact) ->
+   Fact#{
+      s => elasticnt_ns_encode(S),
+      p => elasticnt_ns_encode(P),
+      o => scalar:i(O),
+      type => long
+   };
+
+typed(#{s := S, p := P, o := O, type := <<"http://www.w3.org/2001/XMLSchema#string">>} = Fact) ->
+   Fact#{
+      s => elasticnt_ns_encode(S),
+      p => elasticnt_ns_encode(P),
+      o => scalar:i(O),
+      type => string
+   };
+
+typed(#{s := S, p := P, o := O} = Fact) ->
+   Fact#{
+      s => elasticnt_ns_encode(S),
+      p => elasticnt_ns_encode(P),
+      o => elasticnt_ns_encode(O)
+   }.
+
+elasticnt_ns_encode(X) ->
+   elasticnt_ns_encode:q(undefined, X).
+
+%%
+%% map typed fact to json object
+jsonify(#{s := S, p := P, o := O} = Fact) ->
    Uid  = base64:encode( uid:encode(uid:g()) ),
-   JsO  = jsonify(O),
+   JsO  = value(O),
    Key  = unique_id(S, P, JsO),
    Type = typeof(Fact),
    Urn  = uri:segments([Type, Key], ?URN),
@@ -97,10 +185,9 @@ encode(#{s := S, p := P, o := O} = Fact) ->
 
 %%
 %% jsonify fact value
-jsonify({_, _, _} = X) ->
+value({_, _, _} = X) ->
    scalar:s(tempus:encode(X));
-
-jsonify(X) ->
+value(X) ->
    X.
 
 %%
@@ -120,47 +207,4 @@ typeof(#{type := Type}) ->
 
 typeof(#{o := O})
  when is_binary(O) ->
-   string;
-
-typeof(#{o := O})
- when is_integer(O) ->
-   long;
-
-typeof(#{o := O})
- when is_float(O) ->
-   double;
-
-typeof(#{o := {_, _, _}}) ->
-   datetime.
-
-
-
-%%
-%% decode literal data type 
-decode_l(<<"http://www.w3.org/2001/XMLSchema#date">>, X) ->
-   tempus:iso8601(X);
-
-decode_l(<<"http://www.w3.org/2001/XMLSchema#dateTime">>, X) ->
-   tempus:iso8601(X); 
-
-decode_l(<<"http://www.w3.org/2001/XMLSchema#gYearMonth">>, X) ->
-   tempus:iso8601(X); 
-
-decode_l(<<"http://www.w3.org/2001/XMLSchema#gYear">>, X) ->
-   tempus:iso8601(X);    
-
-decode_l(<<"http://www.w3.org/2001/XMLSchema#gMonth">>, X) ->
-   scalar:i(X);    
-
-decode_l(<<"http://www.w3.org/2001/XMLSchema#gDay">>, X) ->
-   scalar:i(X);
-
-decode_l(<<"http://www.w3.org/2001/XMLSchema#integer">>, X) ->
-   scalar:i(X);
-
-decode_l(<<"http://www.w3.org/2001/XMLSchema#string">>, X) ->
-   X;
-
-decode_l(_, X) ->
-   scalar:decode(X).
-
+   string.
