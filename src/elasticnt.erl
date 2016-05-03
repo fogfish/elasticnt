@@ -22,6 +22,7 @@
 -export([
    schema/2,
    schema/3,
+   declare/3,
    put/2,
    put/3,
    in/2,
@@ -53,6 +54,14 @@ schema(Sock, Schema, Opts) ->
       end,
       elasticnt_schema:namespace(Opts)
    ).
+
+%%
+%% declare a new predicate
+-spec declare(pid(), binary(), binary()) -> ok.
+
+declare(Sock, P, Type) ->
+   {Key, Val} = elasticnt_schema:ontology(P, Type),
+   esio:put(Sock, Key, Val).
 
 
 %%

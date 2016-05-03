@@ -21,6 +21,7 @@
 -export([
    new/1
   ,namespace/1
+  ,ontology/2
   ,encode/1
 ]).
 
@@ -37,6 +38,7 @@ new(Opts) ->
       },
       mappings => #{
          '_default_' => #{properties => properties(string)},
+         prefix      => #{properties => properties(string)},
          schema      => #{properties => properties(string)},
          string      => #{properties => properties(string)},
          long        => #{properties => properties(long)},
@@ -83,7 +85,12 @@ namespace(_) ->
    ).   
 
 nt2json({{uri, S}, {uri, P}, {uri, O}}) ->
-   jsonify(#{s => S, p => P, o => O, type => schema}).   
+   jsonify(#{s => S, p => P, o => O, type => prefix}).   
+
+%%
+%%
+ontology(P, Type) ->
+   jsonify(#{s => elasticnt_ns_encode(P), p => <<"urn:rdf:type">>, o => typeof(Type), type => schema}).
 
 
 %%
@@ -207,4 +214,46 @@ typeof(#{type := Type}) ->
 
 typeof(#{o := O})
  when is_binary(O) ->
-   string.
+   string;
+
+typeof(<<"http://www.w3.org/2001/XMLSchema#date">>) ->
+   datetime;
+
+typeof(<<"http://www.w3.org/2001/XMLSchema#dateTime">>) ->
+   datetime;
+
+typeof(<<"http://www.w3.org/2001/XMLSchema#gYearMonth">>) ->
+   datetime;
+
+typeof(<<"http://www.w3.org/2001/XMLSchema#gYear">>) ->
+   datetime;
+
+typeof(<<"http://www.w3.org/2001/XMLSchema#gMonth">>) ->
+   long;
+
+typeof(<<"http://www.w3.org/2001/XMLSchema#gDay">>) ->
+   long;
+
+typeof(<<"http://www.w3.org/2001/XMLSchema#integer">>) ->
+   long;
+
+typeof(<<"http://www.w3.org/2001/XMLSchema#string">>) ->
+   string;
+
+typeof(<<"string">>) ->
+   string;
+
+typeof(<<"long">>) ->
+   long;
+
+typeof(<<"double">>) ->
+   double;
+
+typeof(<<"datetime">>) ->
+   datetime;
+
+typeof(<<"geohash">>) ->
+   geohash.
+
+
+
