@@ -58,7 +58,7 @@ elasticnt:schema(Sock, []).
 elasticnt:put(Sock, 
    #{
       s => <<"http://example.org">>,
-      p => <<"http://purl.org/dc/elements/1.1/title">>,
+      p => <<"dc:title">>,
       o => <<"Example Domain">>
    }
 ).

@@ -22,11 +22,10 @@
 -export([
    schema/2,
    schema/3,
-   declare/3,
+   define/2,
    put/2,
    put/3,
-   in/2,
-   nt/1
+   in/2
 ]).
 
 %%
@@ -45,29 +44,20 @@ schema(Sock, Opts) ->
    elasticnt:schema(Sock, "", Opts).
 
 schema(Sock, Schema, Opts) ->
-   % create bucket
-   esio:put(Sock, uri:segments([Schema], ?URN), elasticnt_schema:new(Opts)),
-   % define namespace prefixes
-   lists:foreach(
-      fun({Key, Val}) ->
-         ok = esio:put(Sock, Key, Val)
-      end,
-      elasticnt_schema:namespace(Opts)
-   ).
+   esio:put(Sock, uri:segments([Schema], ?URN), elasticnt_schema:new(Opts)).
 
 %%
-%% declare a new predicate
--spec declare(pid(), binary(), binary()) -> ok.
+%% define predicate meta-data
+-spec define(binary(), _) -> [semantic:spo()].
 
-declare(Sock, P, Type) ->
-   {Key, Val} = elasticnt_schema:ontology(P, Type),
-   esio:put(Sock, Key, Val).
+define(Predicate, Type) ->
+   lists:map(fun(X) -> X#{type => schema} end, semantic:define(Predicate, Type)).
 
 
 %%
 %% put the statement into cluster
--spec put(pid(), #{s => _, p => _, o => _}) -> ok.
--spec put(pid(), #{s => _, p => _, o => _}, timeout()) -> ok.
+-spec put(pid(), semantic:spo()) -> ok.
+-spec put(pid(), semantic:spo(), timeout()) -> ok.
 
 put(Sock, Fact) ->
    elasticnt:put(Sock, Fact, 5000).
@@ -78,36 +68,20 @@ put(Sock, Fact, Timeout) ->
 
 %%
 %% intake stream of atomic statements 
--spec in(pid(), datum:stream()) -> ok.
+-spec in(pid(), datum:stream() | list()) -> ok.
 
-in(Sock, Stream) ->
+in(Sock, {s, _, _} = Stream) ->
    stream:foreach(
       fun(Fact) ->
          elasticnt:put(Sock, Fact, infinity)
       end,
       Stream
+   );
+
+in(Sock, [_ | _] = List) ->
+   lists:foreach(
+      fun(Fact) ->
+         elasticnt:put(Sock, Fact, infinity)
+      end,
+      List
    ).
-
-%%
-%% takes stream of N-triples and converts them to 
-%% knowledge statements, using built-in ontologies.
--spec nt(datum:stream()) -> datum:stream().
-
-nt({s, _, _} = Stream) ->
-   stream:map(fun nt2fact/1, nt:stream(Stream));
-nt(File) ->
-   case filename:extension(File) of
-      ".nt" -> nt(stdio:file(File));
-      ".gz" -> nt(gz:stream(stdio:file(File)))
-   end.
-
-%%
-%% map nt-triple to fact statement
-nt2fact({{uri, S}, {uri, P}, {uri, O}}) ->
-   #{s => S, p => P, o => O};
-
-nt2fact({{uri, S}, {uri, P}, {<<_:16>> = Lang, O}}) ->
-   #{s => S, p => P, o => O, lang => Lang};
-
-nt2fact({{uri, S}, {uri, P}, {Type, O}}) ->
-   #{s => S, p => P, o => O, type => Type}.
