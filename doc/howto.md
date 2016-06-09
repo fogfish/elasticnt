@@ -50,7 +50,7 @@ elasticnt:schema(Schema, "", []).
 
 %%
 %% create data stream
-Stream = elasticnt:nt("category_labels_en.ttl.gz").
+Stream = semantic:nt("category_labels_en.ttl.gz").
 
 %%
 %% intake data stream to cluster 

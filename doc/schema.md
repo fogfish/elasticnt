@@ -8,9 +8,3 @@ A namespace name is a uniform resource identifier, see [wiki article](https://en
 
 _:dbr:Albert_Einstein _:foaf:name "Albert Einstein"@en .
 ```   
-
-The library defines a collection of built-in prefixes at [namespace.nt](../priv/namespace.nt)
-```
-_:xmlns:dbr _:rdfs:domain <http://dbpedia.org/resource/> .
-```
-
