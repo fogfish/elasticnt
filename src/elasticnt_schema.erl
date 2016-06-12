@@ -61,7 +61,7 @@ encode(#{s := {uri, S}, p := {uri, P}, o := O} = Fact) ->
    Key  = key(S, P, JsO),
    Type = semantic:typeof(Fact),
    Urn  = uri:segments([Type, Key], ?URN),
-   {Urn, #{s => S, p => P, o => JsO, k => Uid}}.
+   {Urn, #{s => S, p => P, Type => JsO, k => Uid}}.
 
 %%
 %% jsonify fact value

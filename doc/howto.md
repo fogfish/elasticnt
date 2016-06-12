@@ -37,6 +37,7 @@ Let's create an index and store the N-triple
 %%
 %% start application
 elasticnt:start().
+semantic:prefixes().
 
 %%
 %% deploy index schema
