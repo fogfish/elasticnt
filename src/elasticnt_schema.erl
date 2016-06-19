@@ -19,7 +19,7 @@
 -include("elasticnt.hrl").
 
 -export([
-   new/1
+   new/2
   ,encode/1
 ]).
 
@@ -28,7 +28,7 @@
 %% define new schema
 %%    n - number of replica (default 1)
 %%    q - number of shards (default 8)
-new(Opts) ->
+new(Schema, Opts) ->
    #{
       settings => #{
          number_of_shards   => opts:val(q, 8, Opts), 
@@ -41,9 +41,10 @@ new(Opts) ->
                s        => #{type => string, index => not_analyzed},
                p        => #{type => string, index => not_analyzed},
                k        => #{type => string, index => not_analyzed},
+               rel      => #{type => string, index => not_analyzed},
                string   => #{type => string},
-               long     => #{type => long},
-               double   => #{type => double},
+               integer  => #{type => long},
+               float    => #{type => double},
                boolean  => #{type => boolean},
                datetime => #{type => date, format => basic_date_time_no_millis, index => not_analyzed},
                geohash  => #{type => geo_point, index => not_analyzed, geohash_prefix => true}
@@ -51,7 +52,6 @@ new(Opts) ->
          }
       }
    }.
-
 
 %%
 %% encode fact to ElasticSearch JSON format

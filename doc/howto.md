@@ -37,7 +37,6 @@ Let's create an index and store the N-triple
 %%
 %% start application
 elasticnt:start().
-semantic:prefixes().
 
 %%
 %% deploy index schema
@@ -51,7 +50,7 @@ elasticnt:schema(Schema, "", []).
 
 %%
 %% create data stream
-Stream = semantic:nt("category_labels_en.ttl.gz").
+Stream = semantic:typed(semantic:nt("category_labels_en.ttl.gz")).
 
 %%
 %% intake data stream to cluster 
