@@ -19,7 +19,7 @@
 -include("elasticnt.hrl").
 
 -export([
-   new/2
+   new/1
   ,encode/1
 ]).
 
@@ -28,7 +28,7 @@
 %% define new schema
 %%    n - number of replica (default 1)
 %%    q - number of shards (default 8)
-new(Schema, Opts) ->
+new(Opts) ->
    #{
       settings => #{
          number_of_shards   => opts:val(q, 8, Opts), 
