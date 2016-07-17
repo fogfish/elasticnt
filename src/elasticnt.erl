@@ -25,7 +25,8 @@
    define/2,
    put/2,
    put/3,
-   in/2
+   remove/2,
+   remove/3
 ]).
 
 %%
@@ -56,8 +57,24 @@ define(Predicate, Type) ->
 
 %%
 %% put the statement into cluster
--spec put(pid(), semantic:spo()) -> ok.
+-spec put(pid(), semantic:spo() | [semantic:spo()] | datum:stream()) -> ok.
 -spec put(pid(), semantic:spo(), timeout()) -> ok.
+
+put(Sock, {s, _, _} = Stream) ->
+   stream:foreach(
+      fun(Fact) ->
+         elasticnt:put(Sock, Fact)
+      end,
+      Stream
+   );
+
+put(Sock, [_ | _] = List) ->
+   lists:foreach(
+      fun(Fact) ->
+         elasticnt:put(Sock, Fact)
+      end,
+      List
+   );
 
 put(Sock, Fact) ->
    elasticnt:put(Sock, Fact, 5000).
@@ -67,21 +84,31 @@ put(Sock, Fact, Timeout) ->
    esio:put(Sock, Urn, Stmt, Timeout).
 
 %%
-%% intake stream of atomic statements 
--spec in(pid(), datum:stream() | list()) -> ok.
+%% remove the statement from cluster
+-spec remove(pid(), semantic:spo() | [semantic:spo()] | datum:stream()) -> ok.
+-spec remove(pid(), semantic:spo(), timeout()) -> ok.
 
-in(Sock, {s, _, _} = Stream) ->
+remove(Sock, {s, _, _} = Stream) ->
    stream:foreach(
       fun(Fact) ->
-         elasticnt:put(Sock, Fact, infinity)
+         elasticnt:remove(Sock, Fact)
       end,
       Stream
    );
 
-in(Sock, [_ | _] = List) ->
+remove(Sock, [_ | _] = List) ->
    lists:foreach(
       fun(Fact) ->
-         elasticnt:put(Sock, Fact, infinity)
+         elasticnt:remove(Sock, Fact)
       end,
       List
-   ).
+   );
+
+remove(Sock, Fact) ->
+   elasticnt:remove(Sock, Fact, 5000).
+
+remove(Sock, Fact, Timeout) ->
+   {Urn, _Stmt} = elasticnt_schema:encode(Fact),
+   esio:remove(Sock, Urn, Timeout).
+
+
