@@ -20,7 +20,6 @@
 
 
 start(_Type, _Args) -> 
-   semantic:prefixes(),
    {ok, self()}.
 
 stop(_State) ->
