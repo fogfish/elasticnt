@@ -56,7 +56,7 @@ new(Opts) ->
 %%
 %% encode fact to ElasticSearch JSON format
 encode(#{s := {uri, S}, p := {uri, P}, o := O} = Fact) ->
-   Uid  = base64:encode( uid:encode(uid:g()) ),
+   Uid  = bits:btoh( uid:encode(uid:g()) ),
    JsO  = val(O),
    Key  = key(S, P, JsO),
    Type = semantic:typeof(Fact),
