@@ -40,14 +40,15 @@ new(Opts) ->
             properties => #{
                s        => #{type => string, index => not_analyzed},
                p        => #{type => string, index => not_analyzed},
+               c        => #{type => float,  index => not_analyzed},
                k        => #{type => string, index => not_analyzed},
-               rel      => #{type => string, index => not_analyzed},
-               string   => #{type => string},
+               binary   => #{type => string},
                integer  => #{type => long},
                float    => #{type => double},
                boolean  => #{type => boolean},
                datetime => #{type => date, format => basic_date_time_no_millis, index => not_analyzed},
-               geohash  => #{type => geo_point, index => not_analyzed, geohash_prefix => true}
+               geohash  => #{type => geo_point, index => not_analyzed, geohash_prefix => true},
+               rel      => #{type => string, index => not_analyzed}
             }
          }
       }
@@ -55,26 +56,38 @@ new(Opts) ->
 
 %%
 %% encode fact to ElasticSearch JSON format
-encode(#{s := {uri, S}, p := {uri, P}, o := O} = Fact) ->
-   Uid  = bits:btoh( uid:encode(uid:g()) ),
-   JsO  = val(O),
-   Key  = key(S, P, JsO),
+encode(#{s := S, p := P, o := O} = Fact) ->
+   encode(urn(S), urn(P), val(O), Fact).
+
+encode(S, P, O, #{c := C, k := K} = Fact) ->
+   Key  = key(S, P, O),
+   Uid  = bits:btoh(uid:encode(K)),
    Type = semantic:typeof(Fact),
    Urn  = uri:segments([Type, Key], ?URN),
-   {Urn, #{s => S, p => P, Type => JsO, k => Uid}}.
+   {Urn, #{s => S, p => P, Type => O, c => C, k => Uid}}.
 
-%%
-%% jsonify fact value
-val({_, _, _} = X) ->
-   scalar:s(tempus:encode(X));
-val({uri, X}) ->
-   X;
-val(X) ->
-   X.
 
 %%
 %% unique fact identity (content address)
 key(S, P, O) ->
    bits:btoh(
-      crypto:hash(md5, [scalar:s(S), scalar:s(P), scalar:s(O)])
+      crypto:hash(md5, [S, P, scalar:s(O)])
    ).
+
+%%
+%% jsonify iri into urn
+urn({iri, Prefix, Suffix}) ->
+   <<"_:", Prefix/binary, $:, Suffix/binary>>;
+urn({iri, Urn}) ->
+   Urn.
+
+%%
+%% jsonify fact value
+val({iri, _, _} = IRI) ->
+   urn(IRI);
+val({iri, _} = IRI) ->
+   urn(IRI);
+val({_, _, _} = X) ->
+   scalar:s(tempus:encode(X));
+val(X) ->
+   X.
