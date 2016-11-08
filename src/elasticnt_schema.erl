@@ -20,7 +20,7 @@
 
 -export([
    new/1
-  ,encode/1
+  ,encode/2
 ]).
 
 
@@ -56,11 +56,11 @@ new(Opts) ->
 
 %%
 %% encode fact to ElasticSearch JSON format
-encode(#{s := S, p := P, o := O} = Fact) ->
-   encode(urn(S), urn(P), val(O), Fact).
+encode(#{s := S, p := P, o := O} = Fact, Unique) ->
+   encode(urn(S), urn(P), val(O), Fact, Unique).
 
-encode(S, P, O, #{c := C, k := K} = Fact) ->
-   Key  = key(S, P, O),
+encode(S, P, O, #{c := C, k := K} = Fact, Unique) ->
+   Key  = key(S, P, O, Unique),
    Uid  = bits:btoh(uid:encode(K)),
    Type = semantic:typeof(Fact),
    Urn  = uri:segments([Type, Key], ?URN),
@@ -69,10 +69,12 @@ encode(S, P, O, #{c := C, k := K} = Fact) ->
 
 %%
 %% unique fact identity (content address)
-key(S, P, O) ->
-   bits:btoh(
-      crypto:hash(md5, [S, P, scalar:s(O)])
-   ).
+key(S, P, O, spo) ->
+   base64( crypto:hash(md5, [S, P, scalar:s(O)]) );
+
+key(S, P, _, sp) ->
+   base64( crypto:hash(md5, [S, P]) ).
+
 
 %%
 %% jsonify iri into urn
@@ -91,3 +93,12 @@ val({_, _, _} = X) ->
    scalar:s(tempus:encode(X));
 val(X) ->
    X.
+
+%%
+%%
+base64(Hash) ->
+   << << (urlencode(D)) >> || <<D>> <= base64:encode(Hash), D =/= $= >>.
+
+urlencode($/) -> $_;
+urlencode($+) -> $-;
+urlencode(D)  -> D.

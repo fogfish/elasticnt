@@ -30,6 +30,11 @@
 ]).
 
 %%
+%% data types
+-type fact() :: semantic:spo() | [semantic:spo()] | datum:stream().
+-type opts() :: [{_, _} | _].
+
+%%
 %% RnD start application
 start() ->
    applib:boot(?MODULE, []).
@@ -57,58 +62,64 @@ define(Predicate, Type) ->
 
 %%
 %% put the statement into cluster
--spec put(pid(), semantic:spo() | [semantic:spo()] | datum:stream()) -> ok.
--spec put(pid(), semantic:spo(), timeout()) -> ok.
+%%  Options
+%%   * t - timeout to accomplish operation
+%%   * unique - identity of unique flag sp | spo
+-spec put(pid(), fact()) -> ok.
+-spec put(pid(), fact(), opts()) -> ok.
 
-put(Sock, {s, _, _} = Stream) ->
+put(Sock, Fact) ->
+   elasticnt:put(Sock, Fact, [{t, 5000}]).
+
+put(Sock, #{s := _, p := _, o := _} = Fact, Opts) ->
+   put_into(Sock, Fact, Opts);   
+
+put(Sock, {s, _, _} = Stream, Opts) ->
    stream:foreach(
       fun(Fact) ->
-         elasticnt:put(Sock, Fact)
+         put_into(Sock, Fact, Opts)
       end,
       Stream
    );
 
-put(Sock, [_ | _] = List) ->
+put(Sock, [_ | _] = List, Opts) ->
    lists:foreach(
       fun(Fact) ->
-         elasticnt:put(Sock, Fact)
+         put_into(Sock, Fact, Opts)
       end,
       List
-   );
+   ).
 
-put(Sock, Fact) ->
-   elasticnt:put(Sock, Fact, 5000).
-
-put(Sock, Fact, Timeout) ->
-   {Urn, Stmt} = elasticnt_schema:encode(Fact),
-   esio:put(Sock, Urn, Stmt, Timeout).
+put_into(Sock, Fact, Opts) ->
+   {Urn, Stmt} = elasticnt_schema:encode(Fact, opts:val(unique, ?UNIQUE, Opts)),
+   esio:put(Sock, Urn, Stmt, opts:val(t, ?TIMEOUT, Opts)).
 
 %%
 %% remove the statement from cluster
--spec remove(pid(), semantic:spo() | [semantic:spo()] | datum:stream()) -> ok.
--spec remove(pid(), semantic:spo(), timeout()) -> ok.
+-spec remove(pid(), fact()) -> ok.
+-spec remove(pid(), fact(), opts()) -> ok.
 
-remove(Sock, {s, _, _} = Stream) ->
+remove(Sock, Fact) ->
+   elasticnt:remove(Sock, Fact, [{t, 5000}]).
+
+remove(Sock, {s, _, _} = Stream, Opts) ->
    stream:foreach(
       fun(Fact) ->
-         elasticnt:remove(Sock, Fact)
+         remove_from(Sock, Fact, Opts)
       end,
       Stream
    );
 
-remove(Sock, [_ | _] = List) ->
+remove(Sock, [_ | _] = List, Opts) ->
    lists:foreach(
       fun(Fact) ->
-         elasticnt:remove(Sock, Fact)
+         remove_from(Sock, Fact, Opts)
       end,
       List
-   );
+   ).
 
-remove(Sock, Fact) ->
-   elasticnt:remove(Sock, Fact, 5000).
-
-remove(Sock, Fact, Timeout) ->
-   {Urn, _Stmt} = elasticnt_schema:encode(Fact),
-   esio:remove(Sock, Urn, Timeout).
+remove_from(Sock, Fact, Opts) ->
+   {Urn, _Stmt} = elasticnt_schema:encode(Fact, opts:val(unique, ?UNIQUE, Opts)),
+   esio:remove(Sock, Urn, opts:val(t, ?TIMEOUT, Opts)).
 
 
