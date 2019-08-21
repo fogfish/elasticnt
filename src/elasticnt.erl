@@ -47,10 +47,11 @@ start() ->
 -spec schema(pid(), atom(), [{_, _}]) -> ok.
 
 schema(Sock, Opts) ->
-   elasticnt:schema(Sock, "", Opts).
+   elasticnt:schema(Sock, undefined, Opts).
 
 schema(Sock, Schema, Opts) ->
-   esio:put(Sock, uri:segments([Schema], ?URN), elasticnt_schema:new(Opts)).
+   % esio:put(Sock, uri:segments([Schema], ?URN), elasticnt_schema:new(Opts)).
+   esio:put(Sock, <<"/nt">>, elasticnt_schema:new(Opts)).
 
 %%
 %% define predicate meta-data

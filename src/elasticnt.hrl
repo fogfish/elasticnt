@@ -16,7 +16,7 @@
 
 %% 
 %% default urn schema for statement identity (used by elastic I/O)
--define(URN, {urn, <<"es">>, <<>>}).
+-define(URN, {urn, <<"es">>, <<"nt">>}).
 
 %%
 %% default timeout

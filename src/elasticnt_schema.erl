@@ -38,17 +38,17 @@ new(Opts) ->
          %% expected mappings: schema, rel, long, double, boolean, datetime, geohash, string
          '_default_' => #{
             properties => #{
-               s        => #{type => string, index => not_analyzed},
-               p        => #{type => string, index => not_analyzed},
-               c        => #{type => float,  index => not_analyzed},
-               k        => #{type => string, index => not_analyzed},
-               binary   => #{type => string},
+               s        => #{type => keyword},
+               p        => #{type => keyword},
+               c        => #{type => double},
+               k        => #{type => text},
+               binary   => #{type => text},
                integer  => #{type => long},
                float    => #{type => double},
                boolean  => #{type => boolean},
-               datetime => #{type => date, format => basic_date_time_no_millis, index => not_analyzed},
-               geohash  => #{type => geo_point, index => not_analyzed, geohash_prefix => true},
-               rel      => #{type => string, index => not_analyzed}
+               datetime => #{type => date, format => basic_date_time_no_millis},
+               geohash  => #{type => geo_point},
+               rel      => #{type => keyword}
             }
          }
       }
@@ -63,7 +63,8 @@ encode(S, P, O, #{c := C, k := K} = Fact, Unique) ->
    Key  = key(S, P, O, Unique),
    Uid  = bits:btoh(uid:encode(K)),
    Type = semantic:typeof(Fact),
-   Urn  = uri:segments([Type, Key], ?URN),
+   %Urn  = uri:segments([Type, Key], ?URN),
+   Urn  = <<"/nt/_doc/", Key/binary>>,
    {Urn, #{s => S, p => P, Type => O, c => C, k => Uid}}.
 
 
